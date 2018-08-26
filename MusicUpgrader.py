@@ -5,6 +5,7 @@ import sys
 import os
 import configparser
 import yaml
+import atexit
 
 def getTrackLink(artist, album, track):
 	url = "https://api.deezer.com/search"
@@ -27,17 +28,27 @@ def createTrackList():
 	config['DEFAULT']['Music Library Path'] = musicLibraryPath
 	config.write(open('configuration.config', 'w'))
 	os.system("pip install beets")
-#	os.system('beet config -p > tmp')
-#	beetConfigPath = open('tmp', 'r').read().rstrip()
-#	with open(beetConfigPath, 'w') as beetConfig:
-#		beetConfigData = str("directory: " + musicLibraryPath + "\n library: " + musicLibraryPath + "musiclibrary.db\n")
-#		yaml.dump(beetConfigData, beetConfig)
-#	beetConfig.close()
-#	os.remove('tmp')
+	os.system('beet config -p > tmp')
+	beetConfigPath = open('tmp', 'r').read().rstrip()
+	with open(beetConfigPath, 'w') as beetConfig:
+		beetConfigData = str("directory: " + musicLibraryPath + "\nlibrary: " + musicLibraryPath + "\musiclibrary.db\n")
+		print(beetConfigData)
+		yaml.dump(beetConfigData, beetConfig, default_flow_style = False)
+	beetConfig.close()
 	os.system(str("beet import -a " + musicLibraryPath))
 	os.system('beet ls -f \"$artist, $album, $title\" > trackList.csv')
 	return
 	
+def cleanup():
+	if os.path.exists('tmp'): os.remove('tmp')
+	if os.path.exists('downloadLinks.txt'): os.remove('downloadLinks.txt')
+	if os.path.exists('trackList.csv'): os.remove('trackList.csv')
+	if os.path.exists('SMLoadr.log'): os.remove('SMLoadr.log')
+	if os.path.exists('SMLoadrConfig.json'): os.remove('SMLoadrConfig.json')
+	return
+
+
+atexit.register(cleanup)
 config = configparser.ConfigParser()
 if os.path.exists('configuration.config'):
 	print("Config file found!")
@@ -65,7 +76,10 @@ if not os.path.exists(filePath):
 		config['DEFAULT']['Track List Path'] = filePath
 		config.write(open('configuration.config', 'w'))
 	elif trackListChoice == '2':
-		print("Sorry! This option is not yet available.")
+		print("Sorry! This option is not yet available.\n")
+		print("You can create one manually by installing beets and running this command: \n")
+		print("beet ls -f \"$artist, $album, $title\" > trackList.csv\n")
+		input("Press enter to exit.")
 #		createTrackList()
 
 with open(filePath, 'r') as csvfile, open(errorListPath, 'w') as errorList, open(downloadListPath, 'w') as linkList:
