@@ -65,7 +65,8 @@ if not os.path.exists(filePath):
 		config['DEFAULT']['Track List Path'] = filePath
 		config.write(open('configuration.config', 'w'))
 	elif trackListChoice == '2':
-		createTrackList()
+		print("Sorry! This option is not yet available.")
+#		createTrackList()
 
 with open(filePath, 'r') as csvfile, open(errorListPath, 'w') as errorList, open(downloadListPath, 'w') as linkList:
 	listFile = csv.reader(csvfile, delimiter=',', quotechar="|")
