@@ -6,6 +6,7 @@ import os
 import configparser
 import yaml
 import atexit
+import ID3
 
 def getTrackLink(artist, track):
 	url = "https://api.deezer.com/search"
@@ -27,16 +28,8 @@ def createTrackList():
 	musicLibraryPath = input("Enter the path to your music library: ")
 	config['DEFAULT']['Music Library Path'] = musicLibraryPath
 	config.write(open('configuration.config', 'w'))
-	os.system("pip install beets")
-	os.system('beet config -p > tmp')
-	beetConfigPath = open('tmp', 'r').read().rstrip()
-	with open(beetConfigPath, 'w') as beetConfig:
-		beetConfigData = str("directory: " + musicLibraryPath + "\nlibrary: " + musicLibraryPath + "\musiclibrary.db\n")
-		print(beetConfigData)
-		yaml.dump(beetConfigData, beetConfig, default_flow_style = False)
-	beetConfig.close()
-	os.system(str("beet import -a " + musicLibraryPath))
-	os.system('beet ls -f \"$artist, $title\" > trackList.csv')
+	fileList = getListOfFiles(musicLibraryPath)
+	
 	return
 	
 def cleanup():
@@ -45,6 +38,49 @@ def cleanup():
 	if os.path.exists('trackList.csv'): os.remove('trackList.csv')
 	if os.path.exists('SMLoadr.log'): os.remove('SMLoadr.log')
 	if os.path.exists('SMLoadrConfig.json'): os.remove('SMLoadrConfig.json')
+	return
+	
+def getListOfFiles(dirName):
+	listOfFile = os.listdir(dirName)
+	allFiles = list()
+	for entry in listOfFile:
+		fullPath = os.path.join(dirName, entry)
+		if os.path.isdir(fullPath):
+			allFiles = allFiles + getListOfFiles(fullPath)
+		else:
+			allFiles.append(fullPath)
+
+	count = 0
+	for i in allFiles:
+		format = i
+		format = format[format.rfind('.'):]
+		name = i
+		a = name.rfind('\\')
+		b = name.rfind('.')
+		name = name[a:b]
+		if not format in open('fileFormats.txt').read():
+			print("Name: " + name + " Format: " + format)
+			del allFiles[count]
+		count = count + 1
+	
+	return allFiles
+	
+def createLinkList(trackListPath, errorListPath, downloadListPath):
+	with open(trackListPath, 'r') as csvfile, open(errorListPath, 'w') as errorList, open(downloadListPath, 'w') as linkList:
+		listFile = csv.reader(csvfile, delimiter=',', quotechar="|")
+		for row in listFile:
+			artist = row[0]
+			track = row[1]
+			print ("Artist: ", artist, " Track: ", track)
+			link = getTrackLink(artist, track)
+			if link == "Error!":
+				errorList.write(str("Artist: " + artist + " Track: " + track + "\n"))
+			else:
+				linkList.write(str(link + "\n"))
+
+	csvfile.close()
+	errorList.close()
+	linkList.close()
 	return
 
 
@@ -63,40 +99,28 @@ else:
 						 
 errorListPath = config['DEFAULT']['Error List Path']
 downloadListPath = config['DEFAULT']['Download Link List Path']
+trackListPath = config['DEFAULT']['Track List Path']
 
-filePath = config['DEFAULT']['Track List Path']
-
-if not os.path.exists(filePath):
+if not os.path.exists(trackListPath):
 	print("Error! Track List not found!\n")
 	print("1) I have one.\n")
 	print("2) I would like to create one.\n")
 	trackListChoice = input("> ")
 	if trackListChoice == '1':
-		filePath = input("Enter track list path: ")
-		config['DEFAULT']['Track List Path'] = filePath
-		config.write(open('configuration.config', 'w'))
+		trackListPath = input("Enter track list path: ")
+		if os.path.exists('configuration.config'):
+			config['DEFAULT']['Track List Path'] = trackListPath
+			config.write(open('configuration.config', 'w'))
+		else:
+			print("Error! Track list non-existant!")
 	elif trackListChoice == '2':
 		print("Sorry! This option is not yet available.\n")
 		print("You can create one manually by installing beets and running this command: \n")
 		print("beet ls -f \"$artist, $title\" > trackList.csv\n")
 		input("Press enter to exit.")
-#		createTrackList()
-
-with open(filePath, 'r') as csvfile, open(errorListPath, 'w') as errorList, open(downloadListPath, 'w') as linkList:
-	listFile = csv.reader(csvfile, delimiter=',', quotechar="|")
-	for row in listFile:
-		artist = row[0]
-		track = row[1]
-		print ("Artist: ", artist, " Track: ", track)
-		link = getTrackLink(artist, track)
-		if link == "Error!":
-				errorList.write(str("Artist: " + artist + " Track: " + track + "\n"))
-		else:
-				linkList.write(str(link + "\n"))
-
-csvfile.close()
-errorList.close()
-linkList.close()
+		createTrackList()
+		
+	createLinkList(trackListPath, errorListPath, downloadListPath)
 
 os.system(".\SMLoadr-win-x86 --quality \"FLAC\" --downloadmode \"all\"")
 
