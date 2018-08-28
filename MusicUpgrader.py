@@ -7,10 +7,10 @@ import configparser
 import yaml
 import atexit
 
-def getTrackLink(artist, album, track):
+def getTrackLink(artist, track):
 	url = "https://api.deezer.com/search"
 
-	querystring = {"q":"artist:\"" + artist + "\" album:\"" + album + "\" track:\"" + track + "\""}
+	querystring = {"q":"artist:\"" + artist + "\" track:\"" + track + "\""}
 
 	response = requests.request("GET", url, params=querystring)
 
@@ -36,7 +36,7 @@ def createTrackList():
 		yaml.dump(beetConfigData, beetConfig, default_flow_style = False)
 	beetConfig.close()
 	os.system(str("beet import -a " + musicLibraryPath))
-	os.system('beet ls -f \"$artist, $album, $title\" > trackList.csv')
+	os.system('beet ls -f \"$artist, $title\" > trackList.csv')
 	return
 	
 def cleanup():
@@ -78,7 +78,7 @@ if not os.path.exists(filePath):
 	elif trackListChoice == '2':
 		print("Sorry! This option is not yet available.\n")
 		print("You can create one manually by installing beets and running this command: \n")
-		print("beet ls -f \"$artist, $album, $title\" > trackList.csv\n")
+		print("beet ls -f \"$artist, $title\" > trackList.csv\n")
 		input("Press enter to exit.")
 #		createTrackList()
 
@@ -86,12 +86,11 @@ with open(filePath, 'r') as csvfile, open(errorListPath, 'w') as errorList, open
 	listFile = csv.reader(csvfile, delimiter=',', quotechar="|")
 	for row in listFile:
 		artist = row[0]
-		album = row[1]
-		track = row[2]
-		print ("Artist: ", artist, " Album: ", album, " Track: ", track)
-		link = getTrackLink(artist, album, track)
+		track = row[1]
+		print ("Artist: ", artist, " Track: ", track)
+		link = getTrackLink(artist, track)
 		if link == "Error!":
-				errorList.write(str("Artist: " + artist + " Album: " + album + " Track: " + track + "\n"))
+				errorList.write(str("Artist: " + artist + " Track: " + track + "\n"))
 		else:
 				linkList.write(str(link + "\n"))
 
