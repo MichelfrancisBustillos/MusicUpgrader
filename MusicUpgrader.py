@@ -125,4 +125,3 @@ if not os.path.exists(trackListPath):
 	createLinkList(trackListPath, errorListPath, downloadListPath)
 
 os.system(".\SMLoadr-win-x86 --quality \"FLAC\" --downloadmode \"all\"")
-
