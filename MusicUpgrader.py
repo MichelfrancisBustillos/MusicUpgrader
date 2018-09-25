@@ -6,7 +6,7 @@ import os
 import configparser
 import yaml
 import atexit
-import ID3
+import mutagen
 
 def getTrackLink(artist, track):
 	url = "https://api.deezer.com/search"
@@ -24,12 +24,18 @@ def getTrackLink(artist, track):
 		
 	return link
 	
-def createTrackList():
+def createTrackList(trackListPath):
 	musicLibraryPath = input("Enter the path to your music library: ")
 	config['DEFAULT']['Music Library Path'] = musicLibraryPath
 	config.write(open('configuration.config', 'w'))
 	fileList = getListOfFiles(musicLibraryPath)
-	
+	with open(trackListPath, 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		for entry in fileList:
+			pullTrack = mutagen.File(entry, easy=True)
+			print(pullTrack['artist'], pullTrack['title'])
+			writer.writerow([pullTrack['artist'], pullTrack['title']])
+	csvfile.close()
 	return
 	
 def cleanup():
@@ -59,7 +65,6 @@ def getListOfFiles(dirName):
 		b = name.rfind('.')
 		name = name[a:b]
 		if not format in open('fileFormats.txt').read():
-			print("Name: " + name + " Format: " + format)
 			del allFiles[count]
 		count = count + 1
 	
@@ -114,11 +119,8 @@ if not os.path.exists(trackListPath):
 		else:
 			print("Error! Track list non-existant!")
 	elif trackListChoice == '2':
-		print("Sorry! This option is not yet available.\n")
-		print("You can create one manually by installing beets and running this command: \n")
-		print("beet ls -f \"$artist, $title\" > trackList.csv\n")
-		input("Press enter to exit.")
-		createTrackList()
+		print("WARNING: This is an experamental feature only!")
+		createTrackList(trackListPath)
 		
 	createLinkList(trackListPath, errorListPath, downloadListPath)
 
